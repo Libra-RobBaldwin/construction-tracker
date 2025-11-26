@@ -7,6 +7,13 @@ import EnhancedPlotDialog, { PlotCreationData } from './EnhancedPlotDialog'
 import MapPlotCard from './MapPlotCard'
 import { Plot } from '@/types/plot'
 
+const shadeFromHex = (hex: string, alpha = 0.2) => {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 let IMAGE_WIDTH = 1200
 let IMAGE_HEIGHT = 800
 
@@ -391,6 +398,29 @@ export default function MapView() {
   
   const containerRef = useRef<HTMLDivElement>(null)
   const imageLayerRef = useRef<HTMLDivElement>(null)
+  const currentViewportRef = useRef({ zoom: 1, position: { x: 0, y: 0 } })
+
+  // Viewport persistence functions
+  const saveViewportState = useCallback((zoom: number, position: { x: number, y: number }) => {
+    const viewportState = { zoom, position, timestamp: Date.now() }
+    localStorage.setItem(`mapViewport_${MAP_SLUG}`, JSON.stringify(viewportState))
+  }, [])
+
+  const loadViewportState = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(`mapViewport_${MAP_SLUG}`)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        // Only use stored state if it's less than 1 hour old
+        if (Date.now() - parsed.timestamp < 3600000) {
+          return { zoom: parsed.zoom, position: parsed.position }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load viewport state:', error)
+    }
+    return null
+  }, [])
 
   const [mapMeta, setMapMeta] = useState<MapMetadata | null>(null)
   const [plots, setPlots] = useState<Plot[]>([])
@@ -402,7 +432,30 @@ export default function MapView() {
 
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
+
+  // Enhanced setters that persist to localStorage
+  const setPositionWithPersistence = useCallback((newPosition: { x: number, y: number }) => {
+    setPosition(newPosition)
+    currentViewportRef.current.position = newPosition
+    saveViewportState(currentViewportRef.current.zoom, newPosition)
+  }, [saveViewportState])
+
+  const setZoomWithPersistence = useCallback((newZoom: number) => {
+    setZoom(newZoom)
+    currentViewportRef.current.zoom = newZoom
+    saveViewportState(newZoom, currentViewportRef.current.position)
+  }, [saveViewportState])
+
   const [minZoom, setMinZoom] = useState(0.5)
+
+  // Sync ref with state changes
+  useEffect(() => {
+    currentViewportRef.current.zoom = zoom
+  }, [zoom])
+
+  useEffect(() => {
+    currentViewportRef.current.position = position
+  }, [position])
 
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
@@ -414,10 +467,15 @@ export default function MapView() {
   const [hoverPoint, setHoverPoint] = useState<[number, number] | null>(null)
   const [existingPlotsWithoutPolygons, setExistingPlotsWithoutPolygons] = useState<Plot[]>([])
 
-  const loadMapData = useCallback(async () => {
+  const loadMapData = useCallback(async (preserveViewport = false) => {
+    // Store current viewport before loading
+    const currentViewport = preserveViewport ? { zoom: currentViewportRef.current.zoom, position: currentViewportRef.current.position } : null
+    
     setError(null)
     setLoading(true)
-    setImageLoaded(false)
+    if (!preserveViewport) {
+      setImageLoaded(false)
+    }
 
     try {
       const [mapResponse, plotsResponse] = await Promise.all([
@@ -458,17 +516,25 @@ export default function MapView() {
         ? mapData.map.imagePath
         : `/${mapData.map.imagePath}`
 
-      await new Promise<void>((resolve, reject) => {
-        const img = new Image()
-        img.onload = () => {
-          IMAGE_WIDTH = mapData.map.naturalWidth ?? img.naturalWidth
-          IMAGE_HEIGHT = mapData.map.naturalHeight ?? img.naturalHeight
-          setImageLoaded(true)
-          resolve()
+      if (!preserveViewport) {
+        await new Promise<void>((resolve, reject) => {
+          const img = new Image()
+          img.onload = () => {
+            IMAGE_WIDTH = mapData.map.naturalWidth ?? img.naturalWidth
+            IMAGE_HEIGHT = mapData.map.naturalHeight ?? img.naturalHeight
+            setImageLoaded(true)
+            resolve()
+          }
+          img.onerror = () => reject(new Error('Failed to load map image'))
+          img.src = imagePath
+        })
+      } else {
+        // When preserving viewport, restore the saved state
+        if (currentViewport) {
+          setZoom(currentViewport.zoom)
+          setPosition(currentViewport.position)
         }
-        img.onerror = () => reject(new Error('Failed to load map image'))
-        img.src = imagePath
-      })
+      }
     } catch (err) {
       console.error('Error loading map data:', err)
       setError(err instanceof Error ? err.message : 'Failed to load map data')
@@ -490,7 +556,7 @@ export default function MapView() {
     }
   }, [router, searchParams])
 
-  const initializeMap = useCallback(() => {
+  const initializeMap = useCallback((forceReset = false) => {
     if (!containerRef.current || IMAGE_WIDTH === 0 || IMAGE_HEIGHT === 0) return
 
     const container = containerRef.current
@@ -501,30 +567,47 @@ export default function MapView() {
     const scaleX = containerWidth / IMAGE_WIDTH
     const scaleY = containerHeight / IMAGE_HEIGHT
     const baseZoom = Math.min(scaleX, scaleY) * 0.9
-    const initialZoom = baseZoom * 2.54 // Make 254% the new 100%
+    const calculatedInitialZoom = baseZoom * 2.54 // Make 254% the new 100%
 
-    setMinZoom(initialZoom) // Set minimum zoom to the new 100%
-    setZoom(initialZoom)
+    setMinZoom(calculatedInitialZoom) // Set minimum zoom to the new 100%
 
-    const initialX = (containerWidth - IMAGE_WIDTH * initialZoom) / 2
-    const initialY = (containerHeight - IMAGE_HEIGHT * initialZoom) / 2
+    // Try to restore saved viewport state
+    const savedState = !forceReset ? loadViewportState() : null
+    if (savedState) {
+      // Validate that saved zoom is reasonable
+      const validZoom = Math.max(calculatedInitialZoom, Math.min(savedState.zoom, 4))
+      setZoom(validZoom)
+      
+      // Validate that saved position is reasonable
+      const bounded = clampPosition(savedState.position.x, savedState.position.y, validZoom, container.getBoundingClientRect())
+      setPosition(bounded)
+    } else {
+      // Use default values
+      setZoom(calculatedInitialZoom)
+      const initialX = (containerWidth - IMAGE_WIDTH * calculatedInitialZoom) / 2
+      const initialY = (containerHeight - IMAGE_HEIGHT * calculatedInitialZoom) / 2
+      setPosition({ x: initialX, y: initialY })
+    }
+  }, [loadViewportState])
 
-    setPosition({ x: initialX, y: initialY })
-  }, [])
+  // Separate resize handler that doesn't take parameters
+  const handleResize = useCallback(() => {
+    initializeMap(false)
+  }, [initializeMap])
 
   useEffect(() => {
     if (!imageLoaded) return
 
     const timer = setTimeout(() => {
-      initializeMap()
+      initializeMap(false)
     }, 100)
 
-    window.addEventListener('resize', initializeMap)
+    window.addEventListener('resize', handleResize)
     return () => {
       clearTimeout(timer)
-      window.removeEventListener('resize', initializeMap)
+      window.removeEventListener('resize', handleResize)
     }
-  }, [initializeMap, imageLoaded])
+  }, [handleResize, imageLoaded, initializeMap])
 
   useEffect(() => {
     const container = containerRef.current
@@ -546,15 +629,15 @@ export default function MapView() {
       const newX = mouseX - (mouseX - position.x) * (newZoom / zoom)
       const newY = mouseY - (mouseY - position.y) * (newZoom / zoom)
 
-      setZoom(newZoom)
-      setPosition({ x: newX, y: newY })
+      setZoomWithPersistence(newZoom)
+      setPositionWithPersistence({ x: newX, y: newY })
     }
 
     container.addEventListener('wheel', wheelHandler, { passive: false })
     return () => {
       container.removeEventListener('wheel', wheelHandler)
     }
-  }, [zoom, position, minZoom, isEditMode])
+  }, [zoom, position, minZoom, isEditMode, setPositionWithPersistence, setZoomWithPersistence])
 
   const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -576,7 +659,7 @@ export default function MapView() {
 
     const containerRect = containerRef.current.getBoundingClientRect()
     const bounded = clampPosition(newX, newY, zoom, containerRect)
-    setPosition(bounded)
+    setPositionWithPersistence(bounded)
   }
   const handleMouseUp = () => {
     setIsDragging(false)
@@ -675,7 +758,7 @@ export default function MapView() {
       })
       if (!response.ok) throw new Error('Failed to save plot polygon')
 
-      await loadMapData()
+      await loadMapData(true) // Preserve viewport when saving
       setCurrentPolygon([])
       setShowNameDialog(false)
       setHoverPoint(null)
@@ -910,8 +993,8 @@ export default function MapView() {
             const centerY = rect.height / 2
             const newX = centerX - (centerX - position.x) * (newZoom / zoom)
             const newY = centerY - (centerY - position.y) * (newZoom / zoom)
-            setZoom(newZoom)
-            setPosition({ x: newX, y: newY })
+            setZoomWithPersistence(newZoom)
+            setPositionWithPersistence({ x: newX, y: newY })
           }}
           className="w-10 h-10 bg-white rounded shadow border flex items-center justify-center text-lg font-bold hover:bg-gray-50 transition-colors text-gray-800"
           title="Zoom In"
@@ -934,8 +1017,8 @@ export default function MapView() {
               const centerY = rect.height / 2
               const newX = centerX - (centerX - position.x) * (newZoom / zoom)
               const newY = centerY - (centerY - position.y) * (newZoom / zoom)
-              setZoom(newZoom)
-              setPosition({ x: newX, y: newY })
+              setZoomWithPersistence(newZoom)
+              setPositionWithPersistence({ x: newX, y: newY })
             }
           }}
           className="w-10 h-10 bg-white rounded shadow border flex items-center justify-center text-lg font-bold hover:bg-gray-50 transition-colors text-gray-800"
@@ -969,9 +1052,29 @@ export default function MapView() {
       />
 
       {selectedPlot && (
-        <PlotDetailsModal
-          plot={selectedPlot}
+        <EnhancedPlotDialog
+          show={true}
           onClose={() => setSelectedPlot(null)}
+          onSave={async (plotData, plotId) => {
+            if (!plotId) return
+            try {
+              const response = await fetch(`/api/plots/${plotId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(plotData)
+              })
+              if (!response.ok) throw new Error('Failed to update plot')
+              await loadMapData(true) // Reload data while preserving viewport
+              setSelectedPlot(null)
+            } catch (err) {
+              console.error('Error updating plot:', err)
+              alert('Failed to update plot. Please try again.')
+            }
+          }}
+          coordinates={[]}
+          saving={false}
+          existingPlotsWithoutPolygons={[]}
+          viewingPlot={selectedPlot}
         />
       )}
     </div>

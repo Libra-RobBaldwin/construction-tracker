@@ -4,16 +4,9 @@
 
 :root {
   --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --background-start-rgb: 245, 247, 250;
   --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+  color-scheme: light;
 }
 
 body {
@@ -24,6 +17,28 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+}
+
+/* Force light mode for all form elements */
+input,
+select,
+textarea,
+button {
+  color-scheme: light;
+}
+
+/* Clean form element styling */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  background-color: #ffffff;
+  color: #1f2937;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
 }
 
 @layer components {

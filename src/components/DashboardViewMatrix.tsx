@@ -88,7 +88,7 @@ const formatDateForDisplay = (date: Date | null | undefined): string => {
   const dt = date instanceof Date ? date : new Date(date)
   const day = dt.getDate().toString().padStart(2, '0')
   const month = (dt.getMonth() + 1).toString().padStart(2, '0')
-  const year = dt.getFullYear().toString().slice(2)
+  const year = dt.getFullYear()
   return `${day}/${month}/${year}`
 }
 
@@ -142,7 +142,7 @@ const generateTimelineWeeks = (startDate: Date, weekCount: number): TimelineWeek
     const year = weekStart.getFullYear()
     const weekNumber = getWeekNumber(weekStart)
     const weekLabel = `W${weekNumber}`
-    const dateLabel = `${weekStart.getDate()}/${weekStart.getMonth() + 1}/${year.toString().slice(2)}`
+    const dateLabel = `${weekStart.getDate().toString().padStart(2, '0')}/${(weekStart.getMonth() + 1).toString().padStart(2, '0')}`
     
     weeks.push({
       weekStart,
@@ -736,22 +736,11 @@ export default function DashboardView() {
                                     }}
                                     min="0"
                                     max="100"
-                                    className="w-full pl-1 pr-4 py-0.5 border border-gray-300 rounded text-xs bg-white text-gray-700 text-left"
-                                    style={{ 
-                                      fontSize: '10px',
-                                      MozAppearance: 'textfield',
-                                      WebkitAppearance: 'none'
-                                    }}
+                                    className="w-full pl-1 pr-4 py-0.5 border border-gray-300 rounded text-xs bg-white text-gray-700 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    style={{ fontSize: '10px' }}
                                     placeholder="0"
                                   />
                                   <span className="absolute right-1 top-0.5 text-xs text-gray-500 pointer-events-none">%</span>
-                                  <style jsx>{`
-                                    input[type="number"]::-webkit-outer-spin-button,
-                                    input[type="number"]::-webkit-inner-spin-button {
-                                      -webkit-appearance: none;
-                                      margin: 0;
-                                    }
-                                  `}</style>
                                 </div>
                               </div>
                               
@@ -921,7 +910,7 @@ export default function DashboardView() {
                       className="w-12 px-0.5 py-1 border-r border-gray-200 text-center"
                     >
                       <div className="text-xs font-medium text-gray-900">{week.weekLabel}</div>
-                      <div className="text-xs text-gray-500 leading-tight" style={{ fontSize: '10px' }}>
+                      <div className="text-xs text-gray-500 leading-tight" style={{ fontSize: '9px' }}>
                         {week.dateLabel}
                       </div>
                     </div>
