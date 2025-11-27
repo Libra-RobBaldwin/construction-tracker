@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import type { Plot } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     const centerX = coordinates.reduce((sum, point) => sum + point[0], 0) / coordinates.length
     const centerY = coordinates.reduce((sum, point) => sum + point[1], 0) / coordinates.length
 
-    let plot
+    let plot: Plot
 
     if (existingPlotId) {
       // Update existing plot with polygon data

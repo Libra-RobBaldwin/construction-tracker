@@ -34,9 +34,7 @@ type EditingCell = {
   field: 'plannedStart' | 'plannedEnd' | 'actualStart' | 'actualEnd'
 }
 
-type StageProgress = ConstructionProgress & {
-  recordedAt?: Date | null
-}
+type StageProgress = ConstructionProgress
 
 type StageDraft = {
   completionPercentage: number
@@ -76,7 +74,6 @@ const shadeFromHex = (hex: string, alpha = 0.2) => {
 const normaliseStageProgress = (progress: StageProgress[]): StageProgress[] => {
   return progress.map((item) => ({
     ...item,
-    recordedAt: parseDate(item.recordedAt) ?? new Date(),
     createdAt: parseDate(item.createdAt) ?? new Date(),
     updatedAt: parseDate(item.updatedAt) ?? new Date(),
     constructionStage: item.constructionStage
@@ -101,14 +98,14 @@ const buildStageDraftState = (plots: Plot[]): StageDraftMap => {
         const latest = plot.constructionProgress
           ?.filter((progress) => progress.constructionStageId === stage.id)
           ?.sort((a, b) => {
-            const aTime = parseDate(a.recordedAt)?.getTime() ?? 0
-            const bTime = parseDate(b.recordedAt)?.getTime() ?? 0
+            const aTime = parseDate(a.updatedAt)?.getTime() ?? 0
+            const bTime = parseDate(b.updatedAt)?.getTime() ?? 0
             return bTime - aTime
           })[0]
 
         stageDrafts[stage.id] = {
           completionPercentage: latest?.completionPercentage ?? 0,
-          recordedAt: toInputDate(parseDate(latest?.recordedAt)),
+          recordedAt: toInputDate(parseDate(latest?.updatedAt)),
         }
       })
 
@@ -353,9 +350,6 @@ export default function DashboardView() {
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">{plot.name}</h2>
                   <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-gray-600">
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 font-medium uppercase tracking-wide">
-                      {plot.status.replace('_', ' ')}
-                    </span>
                     {plot.constructionType?.name && (
                       <span className="flex items-center gap-1">
                         <span className="font-medium text-gray-700">Type:</span>
@@ -371,7 +365,12 @@ export default function DashboardView() {
                   </div>
                 </div>
                 <div className="text-sm text-gray-600">
-                  Overall progress <span className="font-semibold text-gray-900">{plot.progress}%</span>
+                  Overall progress <span className="font-semibold text-gray-900">
+                    {Math.round(
+                      (plot.constructionProgress?.reduce((sum, p) => sum + (p.completionPercentage || 0), 0) ?? 0) /
+                      Math.max(1, stages.length)
+                    )}%
+                  </span>
                 </div>
               </div>
 
@@ -381,14 +380,14 @@ export default function DashboardView() {
                     const latest = plot.constructionProgress
                       ?.filter((item) => item.constructionStageId === stage.id)
                       ?.sort((a, b) => {
-                        const aTime = parseDate(a.recordedAt)?.getTime() ?? 0
-                        const bTime = parseDate(b.recordedAt)?.getTime() ?? 0
+                        const aTime = parseDate(a.updatedAt)?.getTime() ?? 0
+                        const bTime = parseDate(b.updatedAt)?.getTime() ?? 0
                         return bTime - aTime
                       })?.[0]
 
                     const draft = stageDraft[stage.id] ?? {
                       completionPercentage: latest?.completionPercentage ?? 0,
-                      recordedAt: toInputDate(parseDate(latest?.recordedAt)),
+                      recordedAt: toInputDate(parseDate(latest?.updatedAt)),
                     }
 
                     const color = stage.color || '#3b82f6'
@@ -416,7 +415,7 @@ export default function DashboardView() {
                             />
                           </div>
                           <div className="mt-2 text-xs text-gray-500">
-                            Last recorded: {formatRecordedAt(draft.recordedAt || toInputDate(parseDate(latest?.recordedAt)))}
+                            Last recorded: {formatRecordedAt(draft.recordedAt || toInputDate(parseDate(latest?.updatedAt)))}
                           </div>
                         </div>
 

@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import MapView from '@/components/MapView'
 import DashboardViewMatrix from '@/components/DashboardViewMatrix'
 import Navigation from '@/components/Navigation'
 import PasswordGate from '@/components/PasswordGate'
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [currentView, setCurrentView] = useState<'map' | 'dashboard'>('map')
@@ -44,5 +44,17 @@ export default function Home() {
         )}
       </main>
     </PasswordGate>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gray-800 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   )
 }

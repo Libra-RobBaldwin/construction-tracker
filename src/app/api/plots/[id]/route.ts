@@ -55,8 +55,6 @@ export async function PUT(
       data: {
         mapId: mapIdToUse,
         name: body.name,
-        status: body.status,
-        progress: body.progress,
         description: body.description,
         startDate: body.startDate ? new Date(body.startDate) : null,
         endDate: body.endDate ? new Date(body.endDate) : null,
