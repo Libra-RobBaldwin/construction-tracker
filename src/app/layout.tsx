@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: 'Construction Tracker',
   description: 'Track construction project progress with interactive maps',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-192.png',
+    apple: '/icon-192.png',
+  },
 }
 
 export const viewport: Viewport = {
