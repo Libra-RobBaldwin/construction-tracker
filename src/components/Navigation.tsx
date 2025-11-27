@@ -10,7 +10,7 @@ export default function Navigation({ currentView, onViewChange }: NavigationProp
     <nav className="bg-white text-gray-800 p-4 shadow-lg border-b border-gray-200 sticky top-0 z-50 w-full">
       <div className="mx-6 flex items-center justify-between gap-4">
         <div>
-          <div className="text-sm text-gray-600" style={{ fontFamily: 'Times New Roman, serif' }}>WELBOURNE</div>
+          <div className="text-sm text-gray-600" style={{ fontFamily: 'Times New Roman, serif' }}>WELBORNE</div>
           <h1 className="text-xl font-bold text-gray-900">
             {currentView === 'map' ? 'Dashwood Map' : 'Dashwood Dashboard'}
           </h1>

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import MapView from '@/components/MapView'
 import DashboardViewMatrix from '@/components/DashboardViewMatrix'
 import Navigation from '@/components/Navigation'
+import PasswordGate from '@/components/PasswordGate'
 
 export default function Home() {
   const router = useRouter()
@@ -28,18 +29,20 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <Navigation currentView={currentView} onViewChange={handleViewChange} />
-      
-      {currentView === 'map' && (
-        <div className="map-container h-[calc(100vh-80px)]">
-          <MapView />
-        </div>
-      )}
-      
-      {currentView === 'dashboard' && (
-        <DashboardViewMatrix />
-      )}
-    </main>
+    <PasswordGate>
+      <main className="min-h-screen bg-gray-50">
+        <Navigation currentView={currentView} onViewChange={handleViewChange} />
+        
+        {currentView === 'map' && (
+          <div className="map-container h-[calc(100vh-80px)]">
+            <MapView />
+          </div>
+        )}
+        
+        {currentView === 'dashboard' && (
+          <DashboardViewMatrix />
+        )}
+      </main>
+    </PasswordGate>
   )
 }
