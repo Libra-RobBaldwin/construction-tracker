@@ -40,8 +40,8 @@ export default function PasswordGate({ children }: PasswordGateProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gray-800 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -51,13 +51,13 @@ export default function PasswordGate({ children }: PasswordGateProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-500/10 rounded-2xl mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-800 rounded-2xl mb-4">
             <svg 
-              className="w-8 h-8 text-amber-400" 
+              className="w-8 h-8 text-white" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -70,14 +70,14 @@ export default function PasswordGate({ children }: PasswordGateProps) {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-white mb-1">Construction Tracker</h1>
-          <p className="text-slate-400 text-sm">Enter password to continue</p>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-1">Construction Tracker</h1>
+          <p className="text-gray-500 text-sm">Enter password to continue</p>
         </div>
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-2xl p-6 shadow-xl">
+        <form onSubmit={handleSubmit} className="bg-white backdrop-blur border border-gray-200 rounded-2xl p-6 shadow-lg">
           <div className="mb-4">
-            <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password
             </label>
             <div className="relative">
@@ -90,14 +90,14 @@ export default function PasswordGate({ children }: PasswordGateProps) {
                   setError('')
                 }}
                 placeholder="Enter password"
-                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-800/30 focus:border-gray-800 transition-all"
                 autoFocus
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 {showPassword ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,20 +114,20 @@ export default function PasswordGate({ children }: PasswordGateProps) {
           </div>
 
           {error && (
-            <div className="mb-4 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 focus:ring-offset-slate-800"
+            className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-gray-800/50 focus:ring-offset-2 focus:ring-offset-white"
           >
             Access Tracker
           </button>
         </form>
 
-        <p className="text-center text-slate-500 text-xs mt-6">
+        <p className="text-center text-gray-400 text-xs mt-6">
           Welborne Development Project
         </p>
       </div>
